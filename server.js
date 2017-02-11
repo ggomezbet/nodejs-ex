@@ -14,11 +14,17 @@ var App = function(){
   self.mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
   self.mongoURLLabel = "";
 
+  console.log('%s: port: %d ...', Date(Date.now()), self.port);
+  console.log('%s: ipaddr: %s ...', Date(Date.now()), self.ipaddr);
+  console.log('%s: mongoURL: %s ...', Date(Date.now()), self.mongoURL);
+  console.log('%s: process.env.MONGODBDB_HOST: %s ...', Date(Date.now()), process.env.MONGODBDB_HOST);
+  console.log('%s: process.env.MONGODB_USER: %s ...', Date(Date.now()), process.env.MONGODB_USER);
   // Setup
   self.dbServer = new mongodb.Server(process.env.MONGODBDB_HOST,parseInt(self.port));
   self.db = new mongodb.Db(process.env.APP_NAME, self.dbServer, {auto_reconnect: true});
   self.dbUser = process.env.MONGODB_USER;
   self.dbPass = process.env.MONGODB_PASSWORD;
+
 
   //self.ipaddr  = process.env.OPENSHIFT_NODEJS_IP;
   //self.port    = parseInt(process.env.OPENSHIFT_NODEJS_PORT) || 8080;
@@ -26,11 +32,8 @@ var App = function(){
     console.warn('No OPENSHIFT_NODEJS_IP environment variable');
   };
 
-  console.log('%s: port: %d ...', Date(Date.now()), self.port);
-  console.log('%s: ipaddr: %s ...', Date(Date.now()), self.ipaddr);
-  console.log('%s: mongoURL: %s ...', Date(Date.now()), self.mongoURL);
-  console.log('%s: process.env.MONGODBDB_HOST: %s ...', Date(Date.now()), process.env.MONGODBDB_HOST);
-  console.log('%s: process.env.MONGODB_USER: %s ...', Date(Date.now()), process.env.MONGODB_USER);
+  
+  
 
 
   // Web app logic
