@@ -4,20 +4,26 @@ var express = require('express');
 var fs      = require('fs');
 var mongodb = require('mongodb');
 
+var port = process.env.PORT || 8080;
+var ipaddr   = '0.0.0.0';
+var mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
+var mongoURLLabel = "";
+
 var App = function(){
 
   // Scope
   var self = this;
 
-  self.port = process.env.PORT || 8080;
-  self.ipaddr   = '0.0.0.0';
-  self.mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
-  self.mongoURLLabel = "";
+  self.port = port;
+  self.ipaddr   = ipaddr;
+  self.mongoURL = mongoURL;
+  self.mongoURLLabel = mongoURLLabel;
 
   console.log('%s: port: %d ...', Date(Date.now()), self.port);
   console.log('%s: ipaddr: %s ...', Date(Date.now()), self.ipaddr);
   console.log('%s: mongoURL: %s ...', Date(Date.now()), self.mongoURL);
-  console.log('%s: process.env.MONGODBDB_HOST: %s ...', Date(Date.now()), process.env.MONGODBDB_HOST);
+  console.log('%s: process.env.DATABASE_SERVICE_NAME: %s ...', Date(Date.now()), process.env.DATABASE_SERVICE_NAME);
+  console.log('%s: process.env.MONGODB_HOST: %s ...', Date(Date.now()), process.env.MONGODB_HOST);
   console.log('%s: process.env.MONGODB_USER: %s ...', Date(Date.now()), process.env.MONGODB_USER);
   // Setup
   self.dbServer = new mongodb.Server(process.env.MONGODBDB_HOST,parseInt(self.port));
