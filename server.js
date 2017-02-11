@@ -15,8 +15,8 @@ var App = function(){
   self.mongoURLLabel = "";
 
   // Setup
-  self.dbServer = new mongodb.Server(process.env.OPENSHIFT_MONGODB_DB_HOST,parseInt(self.port));
-  self.db = new mongodb.Db(process.env.OPENSHIFT_APP_NAME, self.dbServer, {auto_reconnect: true});
+  self.dbServer = new mongodb.Server(process.env.MONGODBDB_HOST,parseInt(self.port));
+  self.db = new mongodb.Db(process.env.APP_NAME, self.dbServer, {auto_reconnect: true});
   self.dbUser = process.env.MONGODB_USER;
   self.dbPass = process.env.MONGODB_PASSWORD;
 
