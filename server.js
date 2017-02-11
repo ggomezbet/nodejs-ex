@@ -9,8 +9,8 @@ var App = function(){
   // Scope
   var self = this;
 
-  self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
-  self.ipaddr   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
+  self.port = process.env.PORT || 8080;
+  self.ipaddr   = '0.0.0.0';
   self.mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
   self.mongoURLLabel = "";
 
@@ -25,6 +25,12 @@ var App = function(){
   if (typeof self.ipaddr === "undefined") {
     console.warn('No OPENSHIFT_NODEJS_IP environment variable');
   };
+
+  console.log('%s: port: %d ...', Date(Date.now()), self.port);
+  console.log('%s: ipaddr: %s ...', Date(Date.now()), self.ipaddr);
+  console.log('%s: mongoURL: %s ...', Date(Date.now()), self.mongoURL);
+  console.log('%s: process.env.MONGODBDB_HOST: %s ...', Date(Date.now()), process.env.MONGODBDB_HOST);
+  console.log('%s: process.env.MONGODB_USER: %s ...', Date(Date.now()), process.env.MONGODB_USER);
 
 
   // Web app logic
