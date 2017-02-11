@@ -16,7 +16,10 @@ var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
     mongoURLLabel = "";
 
 console.log('%s: port: %d ...', Date(Date.now()), port);
-  console.log('%s: ip: %s ...', Date(Date.now()), ip);
+console.log('%s: ip: %s ...', Date(Date.now()), ip);
+console.log('%s: mongoURL_1: %s ...', Date(Date.now()), mongoURL);
+console.log('%s: process.env.DATABASE_SERVICE_NAME: %s ...', Date(Date.now()), process.env.DATABASE_SERVICE_NAME);
+
 if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
   var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase(),
       mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'],
