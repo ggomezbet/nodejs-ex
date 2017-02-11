@@ -9,10 +9,10 @@ var App = function(){
   // Scope
   var self = this;
 
-  var self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
-  var self.ipaddr   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
-  var self.mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
-  var self.mongoURLLabel = "";
+  self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
+  self.ipaddr   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
+  self.mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
+  self.mongoURLLabel = "";
 
   // Setup
   self.dbServer = new mongodb.Server(process.env.OPENSHIFT_MONGODB_DB_HOST,parseInt(self.port));
