@@ -1,107 +1,177 @@
-//  OpenShift sample Node application
-var express = require('express'),
-    fs      = require('fs'),
-    app     = express(),
-    eps     = require('ejs'),
-    morgan  = require('morgan');
-    
-Object.assign=require('object-assign')
+#!/bin/env node
 
-app.engine('html', require('ejs').renderFile);
-app.use(morgan('combined'))
+var express = require('express');
+var fs      = require('fs');
+var mongodb = require('mongodb');
 
-var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
-    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
-    mongoURLLabel = "";
+var App = function(){
 
-if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
-  var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase(),
-      mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'],
-      mongoPort = process.env[mongoServiceName + '_SERVICE_PORT'],
-      mongoDatabase = process.env[mongoServiceName + '_DATABASE'],
-      mongoPassword = process.env[mongoServiceName + '_PASSWORD']
-      mongoUser = process.env[mongoServiceName + '_USER'];
+  // Scope
+  var self = this;
 
-  if (mongoHost && mongoPort && mongoDatabase) {
-    mongoURLLabel = mongoURL = 'mongodb://';
-    if (mongoUser && mongoPassword) {
-      mongoURL += mongoUser + ':' + mongoPassword + '@';
-    }
-    // Provide UI label that excludes user id and pw
-    mongoURLLabel += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
-    mongoURL += mongoHost + ':' +  mongoPort + '/' + mongoDatabase;
+  var self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
+  var self.ipaddr   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
+  var self.mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL;
+  var self.mongoURLLabel = "";
 
-  }
-}
-var db = null,
-    dbDetails = new Object();
+  // Setup
+  self.dbServer = new mongodb.Server(process.env.OPENSHIFT_MONGODB_DB_HOST,parseInt(self.port));
+  self.db = new mongodb.Db(process.env.OPENSHIFT_APP_NAME, self.dbServer, {auto_reconnect: true});
+  self.dbUser = process.env.MONGODB_USER;
+  self.dbPass = process.env.MONGODB_PASSWORD;
 
-var initDb = function(callback) {
-  if (mongoURL == null) return;
+  //self.ipaddr  = process.env.OPENSHIFT_NODEJS_IP;
+  //self.port    = parseInt(process.env.OPENSHIFT_NODEJS_PORT) || 8080;
+  if (typeof self.ipaddr === "undefined") {
+    console.warn('No OPENSHIFT_NODEJS_IP environment variable');
+  };
 
-  var mongodb = require('mongodb');
-  if (mongodb == null) return;
 
-  mongodb.connect(mongoURL, function(err, conn) {
-    if (err) {
-      callback(err);
-      return;
-    }
+  // Web app logic
+  self.routes = {};
+  self.routes['health'] = function(req, res){ res.send('1'); };
+  
+  //self.routes['root'] = function(req, res){res.send('You have come to the park apps web service. All the web services are at /ws/parks*. For example /ws/parks will return all the parks in the system in a JSON payload. Thanks for stopping by and have a nice day'); };
 
-    db = conn;
-    dbDetails.databaseName = db.databaseName;
-    dbDetails.url = mongoURLLabel;
-    dbDetails.type = 'MongoDB';
+  //returns all the parks in the collection
+  self.routes['returnAllParks'] = function(req, res){
+    self.db.collection('parkpoints').find().toArray(function(err, names) {
+        res.header("Content-Type:","application/json");
+        res.end(JSON.stringify(names));
+    });
+  };
 
-    console.log('Connected to MongoDB at: %s', mongoURL);
+  //find a single park by passing in the objectID to the URL
+  self.routes['returnAPark'] = function(req, res){
+      var BSON = mongodb.BSONPure;
+      var parkObjectID = new BSON.ObjectID(req.params.id);
+      self.db.collection('parkpoints').find({'_id':parkObjectID}).toArray(function(err, names){
+              res.header("Content-Type:","application/json");
+              res.end(JSON.stringify(names));
+      });
+  };
+
+
+  //find parks near a certain lat and lon passed in as query parameters (near?lat=45.5&lon=-82)
+  self.routes['returnParkNear'] = function(req, res){
+      //in production you would do some sanity checks on these values before parsing and handle the error if they don't parse
+      var lat = parseFloat(req.query.lat);
+      var lon = parseFloat(req.query.lon);
+
+      self.db.collection('parkpoints').find( {"pos" : {$near: [lon,lat]}}).toArray(function(err,names){
+          res.header("Content-Type:","application/json");
+          res.end(JSON.stringify(names));
+       });
+  };
+
+
+  self.routes['returnParkNameNear'] = function(req, res){
+      var lat = parseFloat(req.query.lat);
+      var lon = parseFloat(req.query.lon);
+      var name = req.params.name;
+      self.db.collection('parkpoints').find( {"Name" : {$regex : name, $options : 'i'}, "pos" : { $near : [lon,lat]}}).toArray(function(err,names){
+          res.header("Content-Type:","application/json");
+          res.end(JSON.stringify(names));
+      });
+  };
+
+  self.routes['postAPark'] = function(req, res){
+
+     var name = req.body.name;
+     var lat = req.body.lat;
+     var lon = req.body.lon;
+     console.log(req.body);
+
+     self.db.collection('parkpoints').insert({'Name' : name, 'pos' : [lon,lat ]}), function(result){
+         //we should have caught errors here for a real app
+         res.end('success');
+     };
+  };
+  
+  self.routes['within'] = function(req, res){
+      var lat1 = parseFloat(req.query.lat1);
+      var lon1 = parseFloat(req.query.lon1);
+      var lat2 = parseFloat(req.query.lat2);
+      var lon2 = parseFloat(req.query.lon2);
+
+      self.db.collection('parkpoints').find({"pos" : { $geoWithin : { $box: [[lon2,lat2], [lon1,lat1]]}}}).toArray(function(err,names){
+          res.header("Content-Type:","application/json");
+          res.end(JSON.stringify(names));
+      });
+  };
+
+
+
+
+  // Web app urls
+  
+  self.app  = express();
+  self.app.use(express.compress());
+  
+  // Serve up content from public directory
+  self.app.use(express.static(__dirname + '/public'));
+
+
+
+  //This uses the Connect frameworks body parser to parse the body of the post request
+  self.app.configure(function () {
+        self.app.use(express.bodyParser());
+        self.app.use(express.methodOverride());
+        self.app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
   });
+
+  //define all the url mappings
+  self.app.get('/health', self.routes['health']);
+  //self.app.get('/', self.routes['root']);
+  self.app.get('/ws/parks', self.routes['returnAllParks']);
+  self.app.get('/ws/parks/park/:id', self.routes['returnAPark']);
+  self.app.get('/ws/parks/near', self.routes['returnParkNear']);
+  self.app.get('/ws/parks/name/near/:name', self.routes['returnParkNameNear']);
+  self.app.get('/ws/parks/within', self.routes['within']);
+  self.app.post('/ws/parks/park', self.routes['postAPark']);
+
+
+  // Logic to open a database connection. We are going to call this outside of app so it is available to all our functions inside.
+
+  self.connectDb = function(callback){
+    self.db.open(function(err, db){
+      if(err){ throw err };
+      self.db.authenticate(self.dbUser, self.dbPass, {authdb: "admin"}, function(err, res){
+        if(err){ throw err };
+        callback();
+      });
+    });
+  };
+  
+  
+  //starting the nodejs server with express
+  self.startServer = function(){
+    self.app.listen(self.port, self.ipaddr, function(){
+      console.log('%s: Node server started on %s:%d ...', Date(Date.now()), self.ipaddr, self.port);
+    });
+  }
+
+  // Destructors
+  self.terminator = function(sig) {
+    if (typeof sig === "string") {
+      console.log('%s: Received %s - terminating Node server ...', Date(Date.now()), sig);
+      process.exit(1);
+    };
+    console.log('%s: Node server stopped.', Date(Date.now()) );
+  };
+
+  process.on('exit', function() { self.terminator(); });
+
+  self.terminatorSetup = function(element, index, array) {
+    process.on(element, function() { self.terminator(element); });
+  };
+
+  ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGPIPE', 'SIGTERM'].forEach(self.terminatorSetup);
+
 };
 
-app.get('/', function (req, res) {
-  // try to initialize the db on every request if it's not already
-  // initialized.
-  if (!db) {
-    initDb(function(err){});
-  }
-  if (db) {
-    var col = db.collection('counts');
-    // Create a document with request IP and current time of request
-    col.insert({ip: req.ip, date: Date.now()});
-    col.count(function(err, count){
-      res.render('index.html', { pageCountMessage : count, dbInfo: dbDetails });
-    });
-  } else {
-    res.render('index.html', { pageCountMessage : null});
-  }
-});
+//make a new express app
+var app = new App();
 
-app.get('/pagecount', function (req, res) {
-  // try to initialize the db on every request if it's not already
-  // initialized.
-  if (!db) {
-    initDb(function(err){});
-  }
-  if (db) {
-    db.collection('counts').count(function(err, count ){
-      res.send('{ pageCount: ' + count + '}');
-    });
-  } else {
-    res.send('{ pageCount: -1 }');
-  }
-});
-
-// error handling
-app.use(function(err, req, res, next){
-  console.error(err.stack);
-  res.status(500).send('Something bad happened!');
-});
-
-initDb(function(err){
-  console.log('Error connecting to Mongo. Message:\n'+err);
-});
-
-app.listen(port, ip);
-console.log('Server running on http://%s:%s', ip, port);
-
-module.exports = app ;
+//call the connectDb function and pass in the start server command
+app.connectDb(app.startServer);
