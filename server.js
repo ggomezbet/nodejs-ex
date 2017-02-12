@@ -15,6 +15,7 @@ var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
     mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
     mongoURLLabel = "";
 
+console.log('%s: process.env.OPENSHIFT_NODEJS_PORT: %d ...', Date(Date.now()), process.env.OPENSHIFT_NODEJS_PORT);
 console.log('%s: port: %d ...', Date(Date.now()), port);
 console.log('%s: ip: %s ...', Date(Date.now()), ip);
 console.log('%s: mongoURL_1: %s ...', Date(Date.now()), mongoURL);
